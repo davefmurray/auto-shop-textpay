@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { prisma } from "@/lib/prisma";
 import { getSignedUrl, STORAGE_BUCKETS } from "@/lib/supabase";
 import { notFound } from "next/navigation";
