@@ -1,0 +1,230 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Shop & Staff ───────────────────────────────────────────
+
+model Shop {
+  id                     String   @id @default(cuid())
+  name                   String
+  address                String?
+  phone                  String?
+  email                  String?
+  stripeConnectAccountId String?  @unique
+  ownerName              String?
+  ownerEmail             String?
+  convenienceFeeCents    Int      @default(500)
+  guaranteeActive        Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  staff           Staff[]
+  invoices        Invoice[]
+  guaranteeClaims GuaranteeClaim[]
+  platformFees    PlatformFee[]
+
+  @@map("shops")
+}
+
+model Staff {
+  id           String    @id @default(cuid())
+  shopId       String
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         StaffRole @default(FRONT_DESK)
+  createdAt    DateTime  @default(now())
+
+  shop          Shop           @relation(fields: [shopId], references: [id])
+  invoices      Invoice[]
+  workPhotos    WorkPhoto[]
+  shopApprovals ShopApproval[]
+
+  @@map("staff")
+}
+
+enum StaffRole {
+  OWNER
+  TECH
+  FRONT_DESK
+}
+
+// ─── Invoice ────────────────────────────────────────────────
+
+model Invoice {
+  id                    String        @id @default(cuid())
+  shopId                String
+  createdByStaffId      String?
+  customerName          String
+  customerPhone         String
+  customerEmail         String?
+  vehicleInfo           Json?
+  description           String?
+  lineItems             Json
+  subtotalCents         Int
+  convenienceFeeCents   Int
+  totalCents            Int
+  status                InvoiceStatus @default(DRAFT)
+  stripePaymentIntentId String?       @unique
+  sentAt                DateTime?
+  viewedAt              DateTime?
+  customerAuthorizedAt  DateTime?
+  shopApprovedAt        DateTime?
+  paidAt                DateTime?
+  expiresAt             DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  shop           Shop            @relation(fields: [shopId], references: [id])
+  createdBy      Staff?          @relation(fields: [createdByStaffId], references: [id])
+  authorization  Authorization?
+  workPhotos     WorkPhoto[]
+  shopApproval   ShopApproval?
+  guaranteeClaim GuaranteeClaim?
+  platformFees   PlatformFee[]
+
+  @@map("invoices")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  VIEWED
+  CUSTOMER_AUTHORIZED
+  SHOP_APPROVED
+  PAID
+  REJECTED
+  EXPIRED
+  DISPUTED
+  REFUNDED
+}
+
+// ─── Authorization (payer info) ─────────────────────────────
+
+model Authorization {
+  id                     String   @id @default(cuid())
+  invoiceId              String   @unique
+  payerName              String
+  payerIsCustomer        Boolean  @default(true)
+  relationshipToCustomer String?
+  dlFrontImagePath       String?
+  dlBackImagePath        String?
+  lastFourEntered        String
+  lastFourMatched        Boolean?
+  signatureDataPath      String?
+  authorizationText      String   @db.Text
+  disclaimersAccepted    Json
+  ipAddress              String?
+  userAgent              String?  @db.Text
+  deviceFingerprint      String?
+  consentTimestamp        DateTime
+  createdAt              DateTime @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@map("authorizations")
+}
+
+// ─── Work Photos ────────────────────────────────────────────
+
+model WorkPhoto {
+  id                String    @id @default(cuid())
+  invoiceId         String
+  uploadedByStaffId String?
+  photoType         PhotoType
+  imagePath         String
+  description       String?
+  takenAt           DateTime?
+  uploadedAt        DateTime  @default(now())
+
+  invoice    Invoice @relation(fields: [invoiceId], references: [id])
+  uploadedBy Staff?  @relation(fields: [uploadedByStaffId], references: [id])
+
+  @@map("work_photos")
+}
+
+enum PhotoType {
+  BEFORE
+  DURING
+  AFTER
+}
+
+// ─── Shop Approval ──────────────────────────────────────────
+
+model ShopApproval {
+  id                String           @id @default(cuid())
+  invoiceId         String           @unique
+  approvedByStaffId String
+  decision          ApprovalDecision
+  rejectionReason   String?
+  notes             String?
+  decidedAt         DateTime         @default(now())
+
+  invoice    Invoice @relation(fields: [invoiceId], references: [id])
+  approvedBy Staff   @relation(fields: [approvedByStaffId], references: [id])
+
+  @@map("shop_approvals")
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+}
+
+// ─── Guarantee Claims ───────────────────────────────────────
+
+model GuaranteeClaim {
+  id                       String       @id @default(cuid())
+  invoiceId                String       @unique
+  shopId                   String
+  stripeDisputeId          String?      @unique
+  disputeAmountCents       Int
+  disputeReasonCode        String?
+  disputeCategory          String?
+  evidenceBundlePath       String?
+  evidenceSubmittedAt      DateTime?
+  outcome                  ClaimOutcome @default(PENDING)
+  reimbursementAmountCents Int?
+  reimbursedAt             DateTime?
+  notes                    String?      @db.Text
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  shop    Shop    @relation(fields: [shopId], references: [id])
+
+  @@map("guarantee_claims")
+}
+
+enum ClaimOutcome {
+  PENDING
+  WON
+  LOST
+  REIMBURSED
+}
+
+// ─── Platform Fees ──────────────────────────────────────────
+
+model PlatformFee {
+  id               String   @id @default(cuid())
+  invoiceId        String
+  shopId           String
+  feeType          FeeType
+  amountCents      Int
+  stripeTransferId String?
+  createdAt        DateTime @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  shop    Shop    @relation(fields: [shopId], references: [id])
+
+  @@map("platform_fees")
+}
+
+enum FeeType {
+  GUARANTEE_FEE
+  PLATFORM_FEE
+}
