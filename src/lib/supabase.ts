@@ -1,14 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  throw new Error("NEXT_PUBLIC_SUPABASE_URL is not set");
-}
-
 // Client-side Supabase client (limited permissions)
-export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+export function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
 // Server-side Supabase client (full permissions for storage operations)
 export function getServiceClient() {
