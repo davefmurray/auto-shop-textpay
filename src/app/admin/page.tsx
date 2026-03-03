@@ -1,5 +1,8 @@
 export const dynamic = "force-dynamic";
 
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
@@ -26,6 +29,11 @@ const outcomeColors: Record<string, string> = {
 };
 
 export default async function AdminDashboard() {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "OWNER") {
+    redirect("/login");
+  }
+
   const [shopCount, transactionData, activeDisputeCount, recentClaims] =
     await Promise.all([
       prisma.shop.count(),

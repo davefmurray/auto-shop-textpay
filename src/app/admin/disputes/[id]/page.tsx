@@ -1,5 +1,8 @@
 export const dynamic = "force-dynamic";
 
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSignedUrl, STORAGE_BUCKETS } from "@/lib/supabase";
 import { notFound } from "next/navigation";
@@ -33,6 +36,11 @@ export default async function DisputeDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "OWNER") {
+    redirect("/login");
+  }
+
   const { id } = await params;
 
   const claim = await prisma.guaranteeClaim.findUnique({

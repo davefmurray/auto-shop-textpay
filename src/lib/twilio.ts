@@ -1,13 +1,16 @@
 import twilio from "twilio";
 
-if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-  console.warn("Twilio credentials not set — SMS will not be sent");
-}
+let _client: ReturnType<typeof twilio> | null = null;
 
-const client =
-  process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
-    ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-    : null;
+function getClient() {
+  if (_client) return _client;
+  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+    console.warn("Twilio credentials not set — SMS will not be sent");
+    return null;
+  }
+  _client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+  return _client;
+}
 
 /**
  * Send an SMS payment link to a customer
@@ -23,6 +26,7 @@ export async function sendPaymentLink({
   invoiceId: string;
   totalCents: number;
 }) {
+  const client = getClient();
   if (!client) {
     console.warn("Twilio not configured — skipping SMS");
     return null;
@@ -51,6 +55,7 @@ export async function sendConfirmation({
   shopName: string;
   totalCents: number;
 }) {
+  const client = getClient();
   if (!client) {
     console.warn("Twilio not configured — skipping SMS");
     return null;

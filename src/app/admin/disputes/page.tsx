@@ -1,5 +1,8 @@
 export const dynamic = "force-dynamic";
 
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
@@ -26,6 +29,11 @@ const outcomeColors: Record<string, string> = {
 };
 
 export default async function AdminDisputesPage() {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "OWNER") {
+    redirect("/login");
+  }
+
   const claims = await prisma.guaranteeClaim.findMany({
     orderBy: { createdAt: "desc" },
     include: {

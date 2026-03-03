@@ -6,14 +6,6 @@ export function formatCents(cents: number): string {
 }
 
 /**
- * Calculate the guarantee fee: 1% or $10 minimum
- */
-export function calculateGuaranteeFee(subtotalCents: number): number {
-  const onePercent = Math.round(subtotalCents * 0.01);
-  return Math.max(onePercent, 1000);
-}
-
-/**
  * Generate the authorization text for a payment
  */
 export function generateAuthorizationText({
